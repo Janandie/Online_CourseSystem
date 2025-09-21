@@ -8,12 +8,11 @@ import ContactUs from './pages/ContactUs';
 import AboutUs from './pages/AboutUs';
 import Admin from './pages/Admin/admin';
 import AdminCourses from './pages/Admin/AdminCourses';
-
+import AdminStudent from './pages/Admin/AdminStudent'; 
 
 function App() {
   // Use state to manage which page is displayed
-  const [currentPage, setCurrentPage] = useState('signin'); // Start with signin page
-  
+    const [currentPage, setCurrentPage] = useState('signin'); // Start with signin page
   // Function to navigate between pages
   const navigateTo = (page) => {
     setCurrentPage(page);
@@ -29,6 +28,7 @@ function App() {
     {currentPage === 'about' && <AboutUs navigateTo={navigateTo} />}
     {currentPage === 'admin' && <Admin navigateTo={navigateTo} />}
     {currentPage === 'admin-courses' && <AdminCourses navigateTo={navigateTo} />}
+    {currentPage === 'admin-students' && <AdminStudent navigateTo={navigateTo} />} {/* Add the new page */}
     </>
   )
 } 
