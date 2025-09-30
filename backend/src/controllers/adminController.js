@@ -9,11 +9,8 @@ export const getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       where: { role: "STUDENT" },
-      include: {
-        enrollments: true, // Include enrollments
-      },
+      include: { enrollments: true },
     });
-    
     return res.status(200).json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -21,11 +18,9 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
 export const getUserById = async (req, res) => {
   try {
     const userId = Number(req.params.id);
-
     if (isNaN(userId)) return res.status(400).json({ message: "Invalid user ID" });
 
     const user = await prisma.user.findUnique({
@@ -34,7 +29,6 @@ export const getUserById = async (req, res) => {
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
-
     res.json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
@@ -42,24 +36,29 @@ export const getUserById = async (req, res) => {
   }
 };
 
+// ** Updated: allow name/email updates without requiring role **
 export const updateUserRole = async (req, res) => {
   try {
     const userId = Number(req.params.id);
-    const { role } = req.body;
+    const { role, name, email } = req.body;
 
     if (isNaN(userId)) return res.status(400).json({ error: "Invalid user ID" });
-    if (!role) return res.status(400).json({ error: "Role is required" });
+
+    const dataToUpdate = {};
+    if (role) dataToUpdate.role = role;
+    if (name) dataToUpdate.name = name;
+    if (email) dataToUpdate.email = email;
 
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { role },
+      data: dataToUpdate,
       select: { id: true, email: true, name: true, role: true },
     });
 
     return res.status(200).json(user);
   } catch (error) {
-    console.error("Error updating user role:", error);
-    return res.status(500).json({ error: "Failed to update user role" });
+    console.error("Error updating user:", error);
+    return res.status(500).json({ error: "Failed to update user" });
   }
 };
 
@@ -80,7 +79,6 @@ export const deleteUser = async (req, res) => {
 // ** Add student **
 export const addStudent = async (req, res) => {
   const { name, email } = req.body;
-
   if (!name || !email) return res.status(400).json({ error: "Name and email are required" });
 
   try {
@@ -92,7 +90,7 @@ export const addStudent = async (req, res) => {
         name,
         email,
         role: "STUDENT",
-        password: await bcrypt.hash("defaultPassword123", 10), // temporary default password
+        password: await bcrypt.hash("defaultPassword123", 10),
       },
     });
 
@@ -191,7 +189,6 @@ export const getSystemStats = async (req, res) => {
 export const updateSystemSettings = async (req, res) => {
   const { settings } = req.body;
   try {
-    // Placeholder for real settings update
     return res.status(200).json({ message: "Settings updated successfully", settings });
   } catch (error) {
     console.error("Error updating settings:", error);

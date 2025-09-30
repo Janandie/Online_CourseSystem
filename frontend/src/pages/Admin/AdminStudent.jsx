@@ -11,8 +11,12 @@ const AdminStudents = () => {
   const [error, setError] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newStudent, setNewStudent] = useState({ name: "", email: "" })
+  const [editStudent, setEditStudent] = useState(null)
+  const [editForm, setEditForm] = useState({ name: "", email: "" })
 
-  useEffect(() => { fetchStudents() }, [])
+  useEffect(() => {
+    fetchStudents()
+  }, [])
 
   const fetchStudents = async () => {
     try {
@@ -30,17 +34,24 @@ const AdminStudents = () => {
     } catch (err) {
       console.error("Error fetching students:", err)
       setError("Failed to fetch students. Please try again.")
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleStatusToggle = async (id) => {
+  // Toggle status
+  const handleStatusToggle = (id) => {
     const student = students.find(s => s.id === id)
     const newStatus = student.status === "Active" ? "Blocked" : "Active"
     setStudents(students.map(s => (s.id === id ? { ...s, status: newStatus } : s)))
   }
 
-  const handleViewDetails = (student) => console.log("View details for:", student.name)
+  // View details
+  const handleViewDetails = (student) => {
+    console.log("View details for:", student)
+  }
 
+  // Add new student
   const handleAddStudent = async (e) => {
     e.preventDefault()
     try {
@@ -50,7 +61,29 @@ const AdminStudents = () => {
       setShowAddForm(false)
     } catch (err) {
       console.error("Error adding student:", err)
-      setError(err.response?.data?.message || "Failed to add student")
+      setError(err.response?.data?.error || "Failed to add student")
+    }
+  }
+
+  // Start editing a student
+  const handleEditClick = (student) => {
+    setEditStudent(student)
+    setEditForm({ name: student.name, email: student.email })
+  }
+
+  // Save edited student
+  const handleUpdateStudent = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await api.put(`/admin/users/${editStudent.id}`, {
+        name: editForm.name,
+        email: editForm.email,
+      })
+      setStudents(students.map(s => s.id === editStudent.id ? response.data : s))
+      setEditStudent(null)
+    } catch (err) {
+      console.error("Error updating student:", err)
+      setError(err.response?.data?.error || "Failed to update student")
     }
   }
 
@@ -142,8 +175,26 @@ const AdminStudents = () => {
                 {students.map(student => (
                   <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{student.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {editStudent?.id === student.id ? (
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                          className="border px-2 py-1 rounded"
+                        />
+                      ) : student.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {editStudent?.id === student.id ? (
+                        <input
+                          type="email"
+                          value={editForm.email}
+                          onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                          className="border px-2 py-1 rounded"
+                        />
+                      ) : student.email}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{student.enrolledCourses}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
@@ -157,13 +208,28 @@ const AdminStudents = () => {
                         {student.status}
                       </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
                       <button
                         onClick={() => handleViewDetails(student)}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
                       >
                         <Eye className="w-5 h-5" />
                       </button>
+                      {editStudent?.id === student.id ? (
+                        <button
+                          onClick={handleUpdateStudent}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Save
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleEditClick(student)}
+                          className="text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -177,7 +243,16 @@ const AdminStudents = () => {
               <div key={student.id} className="p-6 border-b border-gray-200 last:border-b-0">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-1">{student.name}</h3>
+                    {editStudent?.id === student.id ? (
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                        className="border px-2 py-1 rounded mb-1"
+                      />
+                    ) : (
+                      <h3 className="font-medium text-gray-900 mb-1">{student.name}</h3>
+                    )}
                     <p className="text-sm text-gray-500">ID: {student.id}</p>
                   </div>
                   <button onClick={() => handleViewDetails(student)} className="text-gray-400 hover:text-gray-600">
@@ -187,14 +262,23 @@ const AdminStudents = () => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Email:</span>
-                    <span className="text-sm text-gray-900">{student.email}</span>
+                    {editStudent?.id === student.id ? (
+                      <input
+                        type="email"
+                        value={editForm.email}
+                        onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                        className="border px-2 py-1 rounded"
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-900">{student.email}</span>
+                    )}
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Enrolled Courses:</span>
                     <span className="text-sm text-gray-900">{student.enrolledCourses}</span>
                   </div>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-gray-500">Status:</span>
                   <button
                     onClick={() => handleStatusToggle(student.id)}
@@ -207,6 +291,22 @@ const AdminStudents = () => {
                     {student.status}
                   </button>
                 </div>
+                {editStudent?.id === student.id && (
+                  <button
+                    onClick={handleUpdateStudent}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium w-full"
+                  >
+                    Save
+                  </button>
+                )}
+                {editStudent?.id !== student.id && (
+                  <button
+                    onClick={() => handleEditClick(student)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium w-full"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
             ))}
           </div>
