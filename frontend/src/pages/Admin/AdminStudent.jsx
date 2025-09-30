@@ -1,75 +1,209 @@
-// src/pages/Admin/AdminStudent.jsx
-import React from 'react';
-import AdminSideBar from '../../components/AdminSideBar'; // Adjust the path based on your project structure
+"use client"
 
-const AdminStudent = ({ navigateTo }) => {
-  const students = [
-    { id: 1, name: 'Sophia Clark', email: 'sophia.clark@email.com', enrolledCourses: 5, status: 'Active' },
-    { id: 2, name: 'Ethan Miller', email: 'ethan.miller@email.com', enrolledCourses: 2, status: 'Active' },
-    { id: 3, name: 'Olivia Davis', email: 'olivia.davis@email.com', enrolledCourses: 1, status: 'Blocked' },
-    { id: 4, name: 'Noah Wilson', email: 'noah.wilson@email.com', enrolledCourses: 4, status: 'Active' },
-    { id: 5, name: 'Ava Taylor', email: 'ava.taylor@email.com', enrolledCourses: 2, status: 'Active' },
-  ];
+import { useState, useEffect } from "react"
+import { Eye } from "lucide-react"
+import AdminSideBar from "../../components/AdminSideBar"
+import api from "../../api"
+
+const AdminStudents = () => {
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchStudents()
+  }, [])
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true)
+      const response = await api.get("/admin/users") // fetch all users
+      // filter only STUDENTS
+      const studentList = response.data
+        .filter((u) => u.role === "STUDENT")
+        .map((student) => ({
+          ...student,
+          enrolledCourses: student.enrollments ? student.enrollments.length : 0,
+          status: "Active", // default, since not stored in DB
+        }))
+      setStudents(studentList)
+      setError(null)
+    } catch (error) {
+      console.error("Error fetching students:", error)
+      setError("Failed to fetch students. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStatusToggle = async (id) => {
+    try {
+      const student = students.find((s) => s.id === id)
+      const newStatus = student.status === "Active" ? "Blocked" : "Active"
+
+      // No DB status field yet → simulate update
+      setStudents(
+        students.map((s) => (s.id === id ? { ...s, status: newStatus } : s)),
+      )
+    } catch (error) {
+      console.error("Error updating student status:", error)
+      setError("Failed to update student status. Please try again.")
+    }
+  }
+
+  const handleViewDetails = (student) => {
+    console.log("View details for:", student.name)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <AdminSideBar />
+        <div className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading students...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex h-screen bg-gray-100 p-0 m-0">
-      {/* Render the existing AdminSideBar, hidden on mobile, with mobile toggle */}
-      <AdminSideBar navigateTo={navigateTo} className="hidden lg:block" />
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 overflow-auto lg:ml-65 ml-0">
-        <div className="flex flex-col lg:flex-row justify-between items-center mb-4 lg:mb-6">
-          <h1 className="text-2xl font-bold mb-4 lg:mb-0">Manage Students</h1>
-          <button className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full lg:w-auto" onClick={() => navigateTo('add-student')}>
-            + Add New Student
-          </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <AdminSideBar />
+      <div className="flex-1 p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <h1 className="text-3xl font-bold text-gray-900">Manage Students</h1>
         </div>
 
-        <div className="bg-white p-4 shadow rounded-lg overflow-x-auto">
-          <table className="w-full text-left min-w-[600px]">
-            <thead className="bg-gray-50">
-              <tr className="border-b">
-                <th className="py-2 px-3 text-sm font-semibold text-gray-600">ID</th>
-                <th className="py-2 px-3 text-sm font-semibold text-gray-600">Name</th>
-                <th className="py-2 px-3 text-sm font-semibold text-gray-600">Email</th>
-                <th className="py-2 px-3 text-sm font-semibold text-gray-600">Enrolled Courses</th>
-                <th className="py-2 px-3 text-sm font-semibold text-gray-600">Status</th>
-                <th className="py-2 px-3 text-sm font-semibold text-gray-600">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student) => (
-                <tr key={student.id} className="border-b hover:bg-gray-50">
-                  <td className="py-2 px-3 text-sm">{student.id}</td>
-                  <td className="py-2 px-3 text-sm">{student.name}</td>
-                  <td className="py-2 px-3 text-sm">{student.email}</td>
-                  <td className="py-2 px-3 text-sm">{student.enrolledCourses}</td>
-                  <td className="py-2 px-3">
-                    <span className={`px-2 py-1 rounded text-sm ${student.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {student.status}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 flex space-x-2">
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                    <button className="text-gray-500 hover:text-gray-700">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  </td>
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* Table Container */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Enrolled Courses
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
-  );
-};
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {students.map((student) => (
+                  <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{student.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                      {student.enrolledCourses}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleStatusToggle(student.id)}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                          student.status === "Active"
+                            ? "bg-green-100 text-green-800 hover:bg-green-200"
+                            : "bg-red-100 text-red-800 hover:bg-red-200"
+                        }`}
+                      >
+                        {student.status}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => handleViewDetails(student)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-export default AdminStudent;
+          {/* Mobile/Tablet Cards */}
+          <div className="lg:hidden">
+            {students.map((student) => (
+              <div key={student.id} className="p-6 border-b border-gray-200 last:border-b-0">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-1">{student.name}</h3>
+                    <p className="text-sm text-gray-500">ID: {student.id}</p>
+                  </div>
+                  <button
+                    onClick={() => handleViewDetails(student)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Email:</span>
+                    <span className="text-sm text-gray-900">{student.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Enrolled Courses:</span>
+                    <span className="text-sm text-gray-900">{student.enrolledCourses}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Status:</span>
+                  <button
+                    onClick={() => handleStatusToggle(student.id)}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+                      student.status === "Active"
+                        ? "bg-green-100 text-green-800 hover:bg-green-200"
+                        : "bg-red-100 text-red-800 hover:bg-red-200"
+                    }`}
+                  >
+                    {student.status}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer Stats */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500">Total Students</p>
+            <p className="text-2xl font-bold text-gray-900">{students.length}</p>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500">Active Students</p>
+            <p className="text-2xl font-bold text-green-600">
+              {students.filter((s) => s.status === "Active").length}
+            </p>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500">Blocked Students</p>
+            <p className="text-2xl font-bold text-red-600">
+              {students.filter((s) => s.status === "Blocked").length}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default AdminStudents

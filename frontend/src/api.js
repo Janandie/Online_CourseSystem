@@ -1,17 +1,16 @@
+// src/api.js
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://localhost:4000/api", // backend URL
-    withCredentials: true, // if backend uses cookies
+  baseURL: "http://localhost:3001/api",
 });
 
-// Optional: attach JWT dynamically if stored in localStorage
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token"); // or wherever you store JWT
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+  const token = localStorage.getItem("token"); // ← check token exists
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`; // ← attach token
+  }
+  return config;
 });
 
 export default api;
