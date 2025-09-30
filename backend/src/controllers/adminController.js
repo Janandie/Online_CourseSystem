@@ -7,13 +7,20 @@ const prisma = new PrismaClient();
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await prisma.user.findMany();
+    const users = await prisma.user.findMany({
+      where: { role: "STUDENT" },
+      include: {
+        enrollments: true, // Include enrollments
+      },
+    });
+    
     return res.status(200).json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
     return res.status(500).json({ error: "Failed to fetch users" });
   }
 };
+
 
 export const getUserById = async (req, res) => {
   try {
